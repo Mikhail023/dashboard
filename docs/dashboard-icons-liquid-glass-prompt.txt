@@ -1,0 +1,12 @@
+Use case: ui-mockup
+Asset type: refined macOS dashboard interface mockup
+Primary request: Redesign the provided dashboard screenshot so Liquid Glass appears only on icons and icon containers on the Dashboard page. The overall page background must remain solid, non-transparent, calm, and readable. Do not make the whole interface glassy.
+Input images: Image 1 is the exact layout and content reference; preserve the same dashboard structure, Russian UI text, sidebar, KPI cards, charts, reminder, project list, timer, finance and notes sections.
+Style/medium: premium native macOS productivity dashboard mockup, polished UI design, realistic app screenshot.
+Composition/framing: same wide desktop dashboard composition as the reference, clean dense app layout, no hero/marketing treatment.
+Color palette: keep the existing sage green, white, deep green, soft mint and charcoal palette; add subtle silver/mint highlights only inside icons.
+Materials/textures: background and main cards are opaque matte surfaces, not transparent. Liquid Glass effect is limited to icons, icon buttons, small glyph containers, sidebar menu icons, KPI corner icons, widget setting icons, project initials, timer play/stop icons and small status icons. Icons should look like translucent etched glass with internal highlights, refraction, and 45-60% opacity while remaining legible.
+Lighting/mood: soft macOS studio lighting, restrained specular highlights on icons only.
+Text: preserve Russian UI labels as much as possible; crisp dark readable text.
+Constraints: keep all panels opaque and readable; do not turn the page background transparent; do not make large glass cards; no full-screen liquid glass overlay; no blurred transparent background. Make the icon glass treatment tasteful and consistent, with more transparent icons than the original.
+Avoid: total Liquid Glass redesign, glassy full cards, transparent sidebar background, washed-out text, fantasy decoration, bokeh, random extra widgets, English UI text, distorted layout.

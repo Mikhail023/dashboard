@@ -1,0 +1,76 @@
+{
+  "name": "local-dashboard",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Локальная персональная система: задачи, заметки, проекты, календарь, финансы и привычки для macOS и Windows",
+  "author": "Dashboard",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "compile": "tsc --noEmit && vite build && node scripts/electron.mjs",
+    "build": "npm run build:mac",
+    "build:arm64": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --publish never",
+    "test": "node scripts/test.mjs",
+    "test:smoke": "node scripts/smoke.mjs",
+    "test:acceptance": "node scripts/acceptance.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write src tests scripts *.json *.ts *.mjs",
+    "postinstall": "electron-builder install-app-deps",
+    "build:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --publish never",
+    "build:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish never",
+    "release:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --publish always",
+    "release:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish always"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@hookform/resolvers": "^5.2.2",
+    "@tiptap/extension-task-item": "^3.0.0",
+    "@tiptap/extension-task-list": "^3.0.0",
+    "@tiptap/react": "^3.0.0",
+    "@tiptap/starter-kit": "^3.0.0",
+    "better-sqlite3": "^12.0.0",
+    "date-fns": "^4.1.0",
+    "electron-updater": "^6.8.9",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.62.0",
+    "zod": "^4.0.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.55.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "electron": "44.5.1",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.0.0",
+    "js-yaml": "^4.3.2",
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^6.3.0",
+    "vitest": "^3.2.0"
+  },
+  "build": {
+    "extends": "build/electron-builder.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mikhail023/dashboard.git"
+  },
+  "homepage": "https://github.com/Mikhail023/dashboard",
+  "bugs": {
+    "url": "https://github.com/Mikhail023/dashboard/issues"
+  }
+}

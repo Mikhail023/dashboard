@@ -1,0 +1,93 @@
+:root {
+  --splash-background: #f7f5f2;
+  --splash-accent: #ff6b22;
+  --splash-fade-out: 260ms;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --splash-background: #0c0f14;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #splash-root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body {
+  background: var(--splash-background);
+  opacity: 1;
+  transition: opacity var(--splash-fade-out) ease-out;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.splash-stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  isolation: isolate;
+}
+
+.splash-stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background: radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--splash-accent) 7%, transparent), transparent 48%);
+  opacity: .75;
+}
+
+.splash-logo {
+  position: relative;
+  width: 280px;
+  aspect-ratio: 1;
+  animation: logo-arrive 620ms cubic-bezier(.2, .72, .25, 1) both, logo-breathe 1450ms ease-in-out 1530ms infinite;
+  will-change: transform, opacity;
+}
+
+.splash-logo-image,
+.splash-piece {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Each reveal is a crop from the approved PNG; no logo geometry is recreated. */
+.splash-piece {
+  opacity: 0;
+  transform: translateY(5px);
+  animation: detail-reveal 300ms cubic-bezier(.2, .72, .25, 1) both;
+  will-change: transform, opacity;
+}
+.splash-piece.clock { clip-path: inset(19% 47% 49% 19%); animation-delay: 480ms; }
+.splash-piece.chart { clip-path: inset(18% 18% 48% 52%); animation-delay: 690ms; }
+.splash-piece.dashboard { clip-path: inset(47% 47% 18% 18%); animation-delay: 900ms; }
+.splash-piece.notes { clip-path: inset(47% 18% 18% 51%); animation-delay: 1110ms; }
+
+@keyframes logo-arrive {
+  from { opacity: 0; transform: scale(.94); }
+  68% { opacity: .72; }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes detail-reveal {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes logo-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+body.is-completing { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-logo { animation: reduced-arrive 230ms ease-out both; }
+  .splash-piece { display: none; }
+  @keyframes reduced-arrive {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
