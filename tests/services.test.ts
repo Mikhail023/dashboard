@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   repo.close();
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 describe("SQLite and migrations", () => {
   it("round-trips a recurring completion that was undone and completed again", () => {

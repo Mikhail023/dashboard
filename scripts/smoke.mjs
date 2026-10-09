@@ -5,6 +5,12 @@ import { join } from "node:path";
 import assert from "node:assert/strict";
 const dir = mkdtempSync(join(tmpdir(), "dashboard-smoke-"));
 let app;
+const deadline = setTimeout(() => {
+  console.error("Electron smoke exceeded 90 seconds");
+  app?.process().kill();
+  process.exit(1);
+}, 90000);
+deadline.unref();
 async function dashboardWindow(application) {
   for (let attempt = 0; attempt < 100; attempt++) {
     for (const candidate of application.windows()) {
@@ -75,5 +81,6 @@ try {
   );
 } finally {
   if (app) await app.close();
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  clearTimeout(deadline);
 }

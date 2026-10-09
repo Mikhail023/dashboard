@@ -14,6 +14,13 @@ const evidence =
   process.env.DASHBOARD_EVIDENCE || join(process.cwd(), ".qa", "acceptance");
 mkdirSync(evidence, { recursive: true });
 let app, page;
+let stage = "launch";
+const deadline = setTimeout(() => {
+  console.error(`Acceptance exceeded 3 minutes at: ${stage}`);
+  app?.process().kill();
+  process.exit(1);
+}, 180000);
+deadline.unref();
 const errors = [];
 async function dashboardWindow(application) {
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -34,6 +41,7 @@ const call = (request) =>
   }, request);
 const snapshot = () => call({ action: "snapshot" });
 const nav = async (name) => {
+  stage = name;
   await page
     .locator(".sidebar nav")
     .getByRole("button", { name: new RegExp(`^${name}`) })
@@ -61,6 +69,7 @@ const login = async () => {
   await page.getByRole("heading", { name: "Дашборд", exact: true }).waitFor();
 };
 const start = async () => {
+  stage = "launch / restart";
   app = await electron.launch({
     executablePath: process.env.DASHBOARD_EXECUTABLE || undefined,
     args: process.env.DASHBOARD_EXECUTABLE ? [] : ["."],
@@ -653,5 +662,6 @@ try {
   throw error;
 } finally {
   if (app) await app.close();
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  clearTimeout(deadline);
 }
