@@ -97,7 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "Dashboard $GITHUB_REF_NAME" --notes-file docs/release-notes.md
-          find release-artifacts -type f ! -name 'latest-mac.yml' -exec gh release upload "$GITHUB_REF_NAME" {} +
-          gh release upload "$GITHUB_REF_NAME" release-artifacts/latest-mac.yml
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "Dashboard $GITHUB_REF_NAME" --notes-file docs/release-notes.md
+          find release-artifacts -type f ! -name 'latest-mac.yml' -exec gh release upload "$GITHUB_REF_NAME" --clobber {} +
+          gh release upload "$GITHUB_REF_NAME" release-artifacts/latest-mac.yml --clobber
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest
