@@ -1,6 +1,6 @@
 {
   "name": "local-dashboard",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "private": true,
   "description": "Локальная персональная система: задачи, заметки, проекты, календарь, финансы и привычки для macOS и Windows",
   "author": "Dashboard",
@@ -16,9 +16,9 @@
     "lint": "eslint .",
     "format": "prettier --write src tests scripts *.json *.ts *.mjs",
     "postinstall": "electron-builder install-app-deps",
-    "build:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --publish never",
+    "build:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --x64 --publish never",
     "build:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish never",
-    "release:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --publish always",
+    "release:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --x64 --publish always",
     "release:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish always"
   },
   "dependencies": {

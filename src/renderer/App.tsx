@@ -360,7 +360,7 @@ export default function App() {
                 <i className="dot" />
                 Локальное хранение
               </span>
-              <span>Dashboard · Только на вашем Mac</span>
+              <span>Dashboard · Только на вашем устройстве</span>
             </footer>
           </div>
           {editor && (

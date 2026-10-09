@@ -20,4 +20,8 @@ const merged = {
   ...manifests[0],
   files: manifests.flatMap((manifest) => manifest.files),
 };
+if (new Set(merged.files.map((file) => file.url)).size !== merged.files.length)
+  throw new Error(
+    "Duplicate macOS release assets: each job must build only its own architecture",
+  );
 writeFileSync(join(root, "latest-mac.yml"), yaml.dump(merged));
