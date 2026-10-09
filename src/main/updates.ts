@@ -82,7 +82,7 @@ export function createUpdateService(
       }
     } catch (error) {
       log(error);
-      if (manual)
+      if (manual || promptOpen)
         await dialog.showMessageBox(window(), {
           type: "warning",
           message: "Не удалось проверить или установить обновление",

@@ -83,6 +83,18 @@ describe("release updates", () => {
     expect(log).toHaveBeenCalled();
     expect(mocks.dialog).not.toHaveBeenCalled();
   });
+  it("reports a failed download after the user accepts an automatic update", async () => {
+    mocks.dialog.mockResolvedValue({ response: 0 });
+    mocks.updater.downloadUpdate.mockRejectedValueOnce(
+      new Error("download failed"),
+    );
+    await createUpdateService(window, prepare, log).check();
+    expect(mocks.dialog).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ type: "warning" }),
+    );
+    expect(mocks.updater.quitAndInstall).not.toHaveBeenCalled();
+  });
   it("offers the official download for unsigned macOS", async () => {
     vi.spyOn(process, "platform", "get").mockReturnValue("darwin");
     mocks.dialog.mockResolvedValue({ response: 0 });
