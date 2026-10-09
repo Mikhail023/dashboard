@@ -28,12 +28,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm audit --audit-level=moderate
       - run: npm run lint
       - run: npm test
       - run: npm run compile
@@ -60,7 +61,7 @@ jobs:
         run: npm run test:smoke
         env:
           DASHBOARD_EXECUTABLE: ${{ github.workspace }}\release\windows\win-unpacked\Dashboard.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dashboard-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
@@ -70,11 +71,12 @@ jobs:
             release/${{ matrix.platform }}/*.blockmap
             release/${{ matrix.platform }}/latest*.yml
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: evidence-${{ matrix.platform }}-${{ matrix.arch }}
           path: .qa/acceptance
+          include-hidden-files: true
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
@@ -82,11 +84,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: dashboard-*
           path: release-artifacts
@@ -96,8 +98,4 @@ jobs:
       - name: Publish complete release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "Dashboard $GITHUB_REF_NAME" --notes-file docs/release-notes.md
-          find release-artifacts -type f ! -name 'latest-mac.yml' -exec gh release upload "$GITHUB_REF_NAME" --clobber {} +
-          gh release upload "$GITHUB_REF_NAME" release-artifacts/latest-mac.yml --clobber
-          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+        run: node scripts/publish-release.mjs
