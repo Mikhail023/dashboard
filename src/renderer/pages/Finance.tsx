@@ -10,6 +10,8 @@ import {
   Search,
   Check,
   FileText,
+  BellRing,
+  CalendarClock,
 } from "lucide-react";
 import { useApp, useData, active, action } from "../store";
 import {
@@ -19,6 +21,8 @@ import {
   formatMoney,
 } from "../../shared/calculations";
 import { labels } from "../../shared/model";
+import { nextSubscriptionPayment } from "../../shared/subscriptions";
+import { localDay } from "../../shared/smart-input";
 import {
   Badge,
   Button,
@@ -45,7 +49,7 @@ export default function Finance() {
     [payAccount, setPayAccount] = useState("");
   const s = summary(data, currency),
     accounts = active(data.accounts);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
   const invoices = active(data.invoices)
     .map((i) => ({
       ...i,
@@ -119,9 +123,13 @@ export default function Finance() {
           <FileText size={16} />
           Выставить счёт
         </Button>
-        <Button onClick={() => edit("transactions")}>
+        <Button
+          onClick={() =>
+            edit(tab === "subscriptions" ? "subscriptions" : "transactions")
+          }
+        >
           <Plus size={17} />
-          Операция
+          {tab === "subscriptions" ? "Подписка" : "Операция"}
         </Button>
       </Heading>
       <Tabs
@@ -134,6 +142,7 @@ export default function Finance() {
           ["categories", "Категории"],
           ["budgets", "Бюджеты"],
           ["goals", "Цели"],
+          ["subscriptions", "Подписки"],
         ]}
       />
       {(tab === "budgets" || tab === "goals") && (
@@ -141,6 +150,95 @@ export default function Finance() {
           <FinancePlanning
             kind={tab === "budgets" ? "budgets" : "financial_goals"}
           />
+        </Card>
+      )}
+      {tab === "subscriptions" && (
+        <Card title="Подписки">
+          <p className="subscriptions-hint">
+            Регулярные платежи и напоминания о предстоящей оплате.
+          </p>
+          {active(data.subscriptions).length ? (
+            <div className="subscription-list">
+              {active(data.subscriptions)
+                .slice()
+                .sort((a, b) =>
+                  a.next_payment_at.localeCompare(b.next_payment_at),
+                )
+                .map((subscription) => {
+                  const days = Math.round(
+                    (Date.parse(`${subscription.next_payment_at}T00:00:00Z`) -
+                      Date.parse(`${today}T00:00:00Z`)) /
+                      86400000,
+                  );
+                  return (
+                    <article className="subscription-row" key={subscription.id}>
+                      <div className="subscription-icon">
+                        <CalendarClock size={18} />
+                      </div>
+                      <div className="subscription-info">
+                        <strong>{subscription.name}</strong>
+                        <span>
+                          {labels[subscription.interval]} · следующая оплата{" "}
+                          {subscription.next_payment_at}
+                        </span>
+                        <small>
+                          <BellRing size={13} />
+                          {subscription.active
+                            ? subscription.reminder_days === 0
+                              ? "Напоминание в день оплаты"
+                              : `Напомнить за ${subscription.reminder_days} дн.`
+                            : "Напоминание выключено"}
+                        </small>
+                      </div>
+                      <div className="subscription-price">
+                        <strong>
+                          {fmt(subscription.amount, subscription.currency)}
+                        </strong>
+                        <span className={days < 0 ? "overdue" : ""}>
+                          {days === 0
+                            ? "Сегодня"
+                            : days < 0
+                              ? `Просрочено ${Math.abs(days)} дн.`
+                              : `Через ${days} дн.`}
+                        </span>
+                      </div>
+                      <div className="subscription-actions">
+                        <Button
+                          secondary
+                          onClick={() => {
+                            void action(
+                              {
+                                action: "save",
+                                table: "subscriptions",
+                                data: {
+                                  ...subscription,
+                                  next_payment_at: nextSubscriptionPayment(
+                                    subscription,
+                                    today,
+                                  ),
+                                  reminder_sent_for: "",
+                                },
+                              },
+                              "Оплата отмечена",
+                            );
+                          }}
+                        >
+                          <Check size={15} /> Оплачено
+                        </Button>
+                        <button
+                          className="text-button"
+                          onClick={() => edit("subscriptions", subscription)}
+                        >
+                          Изменить
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+            </div>
+          ) : (
+            <Empty onCreate={() => edit("subscriptions")} />
+          )}
         </Card>
       )}
       {tab === "overview" && (
@@ -172,54 +270,56 @@ export default function Finance() {
           />
         </div>
       )}
-      <div className="account-row">
-        {accounts.map((a) => (
-          <button
-            key={a.id}
-            className={`account-card ${account === a.id ? "selected" : ""}`}
-            onClick={() => setAccount(account === a.id ? "" : a.id)}
-            onDoubleClick={() => edit("accounts", a)}
-          >
-            <span className="row">
-              {a.type === "cash" ? (
-                <Wallet size={20} />
-              ) : a.type === "bank" ? (
-                <Building2 size={20} />
-              ) : (
-                <CreditCard size={20} />
-              )}{" "}
-              {a.name}
-            </span>
-            <strong>{fmt(balance(data, a), a.currency)}</strong>
-            <span className="row">
-              <small>
-                {labels[a.type]} · {a.currency}
-              </small>
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label={`Изменить ${a.name}`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+      {(tab === "overview" || tab === "transactions") && (
+        <div className="account-row">
+          {accounts.map((a) => (
+            <button
+              key={a.id}
+              className={`account-card ${account === a.id ? "selected" : ""}`}
+              onClick={() => setAccount(account === a.id ? "" : a.id)}
+              onDoubleClick={() => edit("accounts", a)}
+            >
+              <span className="row">
+                {a.type === "cash" ? (
+                  <Wallet size={20} />
+                ) : a.type === "bank" ? (
+                  <Building2 size={20} />
+                ) : (
+                  <CreditCard size={20} />
+                )}{" "}
+                {a.name}
+              </span>
+              <strong>{fmt(balance(data, a), a.currency)}</strong>
+              <span className="row">
+                <small>
+                  {labels[a.type]} · {a.currency}
+                </small>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Изменить ${a.name}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.stopPropagation();
+                      edit("accounts", a);
+                    }
+                  }}
+                  onClick={(e) => {
                     e.stopPropagation();
                     edit("accounts", a);
-                  }
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  edit("accounts", a);
-                }}
-              >
-                <ArrowUpRight size={17} />
+                  }}
+                >
+                  <ArrowUpRight size={17} />
+                </span>
               </span>
-            </span>
+            </button>
+          ))}
+          <button className="account-add" onClick={() => edit("accounts")}>
+            <Plus size={23} />
+            <span>Добавить счёт</span>
           </button>
-        ))}
-        <button className="account-add" onClick={() => edit("accounts")}>
-          <Plus size={23} />
-          <span>Добавить счёт</span>
-        </button>
-      </div>
+        </div>
+      )}
       {tab === "overview" && (
         <div className="finance-charts">
           <Card title="Доходы и расходы">

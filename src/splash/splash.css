@@ -1,24 +1,36 @@
 :root {
-  --splash-background: #f7f5f2;
-  --splash-accent: #ff6b22;
-  --splash-fade-out: 260ms;
+  --splash-background: #f4f1ed;
+  --splash-accent: #f15a24;
+  --splash-fade-out: 320ms;
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --splash-background: #0c0f14;
+  --splash-background: #211c1a;
   color-scheme: dark;
 }
 
-* { box-sizing: border-box; }
-html, body, #splash-root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#splash-root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
 body {
   background: var(--splash-background);
   opacity: 1;
-  transition: opacity var(--splash-fade-out) ease-out;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: opacity var(--splash-fade-out) cubic-bezier(0.22, 0.72, 0.2, 1);
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
-
 .splash-stage {
   position: relative;
   display: grid;
@@ -27,24 +39,28 @@ body {
   place-items: center;
   isolation: isolate;
 }
-
 .splash-stage::before {
   position: absolute;
   inset: 0;
   z-index: -1;
   content: "";
-  background: radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--splash-accent) 7%, transparent), transparent 48%);
-  opacity: .75;
+  background: radial-gradient(
+    ellipse at 50% 43%,
+    color-mix(in srgb, var(--splash-accent) 10%, transparent),
+    transparent 58%
+  );
+  opacity: 0.8;
+  animation: ambient-arrive 900ms ease-out both;
 }
-
 .splash-logo {
   position: relative;
-  width: 280px;
+  width: 252px;
   aspect-ratio: 1;
-  animation: logo-arrive 620ms cubic-bezier(.2, .72, .25, 1) both, logo-breathe 1450ms ease-in-out 1530ms infinite;
+  animation:
+    logo-arrive 640ms cubic-bezier(0.2, 0.72, 0.25, 1) both,
+    logo-breathe 560ms ease-in-out 1400ms both;
   will-change: transform, opacity;
 }
-
 .splash-logo-image,
 .splash-piece {
   position: absolute;
@@ -54,40 +70,84 @@ body {
   height: 100%;
   object-fit: contain;
 }
-
-/* Each reveal is a crop from the approved PNG; no logo geometry is recreated. */
 .splash-piece {
   opacity: 0;
-  transform: translateY(5px);
-  animation: detail-reveal 300ms cubic-bezier(.2, .72, .25, 1) both;
+  transform: translateY(4px);
+  animation: detail-reveal 300ms cubic-bezier(0.2, 0.72, 0.25, 1) both;
   will-change: transform, opacity;
 }
-.splash-piece.clock { clip-path: inset(19% 47% 49% 19%); animation-delay: 480ms; }
-.splash-piece.chart { clip-path: inset(18% 18% 48% 52%); animation-delay: 690ms; }
-.splash-piece.dashboard { clip-path: inset(47% 47% 18% 18%); animation-delay: 900ms; }
-.splash-piece.notes { clip-path: inset(47% 18% 18% 51%); animation-delay: 1110ms; }
-
+.splash-piece.clock {
+  clip-path: inset(19% 47% 49% 19%);
+  animation-delay: 460ms;
+}
+.splash-piece.chart {
+  clip-path: inset(18% 18% 48% 52%);
+  animation-delay: 660ms;
+}
+.splash-piece.dashboard {
+  clip-path: inset(47% 47% 18% 18%);
+  animation-delay: 860ms;
+}
+.splash-piece.notes {
+  clip-path: inset(47% 18% 18% 51%);
+  animation-delay: 1060ms;
+}
+@keyframes ambient-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.8;
+  }
+}
 @keyframes logo-arrive {
-  from { opacity: 0; transform: scale(.94); }
-  68% { opacity: .72; }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes detail-reveal {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes logo-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.025); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.018);
+  }
 }
-
-body.is-completing { opacity: 0; }
-
+body.is-completing {
+  opacity: 0;
+}
 @media (prefers-reduced-motion: reduce) {
-  .splash-logo { animation: reduced-arrive 230ms ease-out both; }
-  .splash-piece { display: none; }
+  .splash-stage::before {
+    animation: none;
+  }
+  .splash-logo {
+    animation: reduced-arrive 220ms ease-out both;
+  }
+  .splash-piece {
+    display: none;
+  }
   @keyframes reduced-arrive {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }

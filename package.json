@@ -1,6 +1,6 @@
 {
   "name": "local-dashboard",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "private": true,
   "description": "Локальная персональная система: задачи, заметки, проекты, календарь, финансы и привычки для macOS и Windows",
   "author": "Dashboard",
@@ -9,17 +9,18 @@
     "dev": "node scripts/dev.mjs",
     "compile": "tsc --noEmit && vite build && node scripts/electron.mjs",
     "build": "npm run build:mac",
-    "build:arm64": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --publish never",
+    "build:arm64": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --publish never && node scripts/refresh-desktop.mjs && node scripts/cleanup-releases.mjs",
     "test": "node scripts/test.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "test:acceptance": "node scripts/acceptance.mjs",
     "lint": "eslint .",
     "format": "prettier --write src tests scripts *.json *.ts *.mjs",
     "postinstall": "electron-builder install-app-deps",
-    "build:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --x64 --publish never",
+    "build:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --x64 --publish never && node scripts/refresh-desktop.mjs && node scripts/cleanup-releases.mjs",
     "build:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish never",
     "release:mac": "npm run compile && electron-builder --config mac/electron-builder.yml --mac --arm64 --x64 --publish always",
-    "release:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish always"
+    "release:windows": "npm run compile && electron-builder --config windows/electron-builder.yml --win --x64 --publish always",
+    "test:motion": "node scripts/motion-check.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -32,10 +33,11 @@
     "date-fns": "^4.1.0",
     "electron-updater": "^6.8.9",
     "lucide-react": "^0.468.0",
+    "motion": "^14.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.62.0",
-    "zod": "^4.0.0",
+    "zod": "^4.6.7",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
@@ -47,7 +49,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
-    "electron": "44.5.1",
+    "electron": "44.11.3",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.0",
     "eslint": "^9.39.0",
@@ -58,7 +60,7 @@
     "prettier": "^3.6.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.0.0",
-    "vite": "^6.3.0",
+    "vite": "^6.4.6",
     "vitest": "^4.1.11"
   },
   "build": {
@@ -73,6 +75,7 @@
     "url": "https://github.com/Mikhail023/dashboard/issues"
   },
   "overrides": {
-    "global-agent": "^4.1.3"
+    "global-agent": "^4.1.3",
+    "minimatch": "^11.0.8"
   }
 }

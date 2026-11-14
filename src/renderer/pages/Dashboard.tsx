@@ -1,3 +1,8 @@
+import { AnimatePresence, motion } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { springs, staggerDelay } from "../animation/tokens";
+import { transitions } from "../animation/transitions";
+import { useMotionReduced } from "../animation/MotionProvider";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Plus,
@@ -21,7 +26,7 @@ import {
 } from "../../shared/calculations";
 import {
   Button,
-  Card,
+  MotionCard,
   Empty,
   Heading,
   IconButton,
@@ -48,6 +53,8 @@ const kpiDefaults = [
   { id: "pending", title: "Ожидают", visible: true },
 ];
 export default function Dashboard() {
+  const reduced = useMotionReduced();
+  const [dragging, setDragging] = useState("");
   const data = useData(),
     state = useApp((s) => s.state)!,
     selected = useApp((s) => s.selected),
@@ -780,56 +787,229 @@ export default function Dashboard() {
       <div
         className={`dashboard-grid adaptive-grid ${gridEditing ? "editing-grid" : ""}`}
       >
-        {widgets
-          .filter((w) => w.visible)
-          .map((w) => (
-            <Card
-              key={w.id}
-              title={w.title}
-              className={`widget-${w.id} size-${w.size ?? "M"} ${w.id === "timer" ? "timer-card" : ""}`}
-              draggable={gridEditing}
-              onDragStart={(e) =>
-                e.dataTransfer.setData("application/dashboard-widget", w.id)
-              }
-              onDragOver={(e) => {
-                if (gridEditing) e.preventDefault();
-              }}
-              onDrop={(e) => {
-                if (gridEditing) {
-                  e.preventDefault();
-                  moveWidget(
-                    e.dataTransfer.getData("application/dashboard-widget"),
-                    w.id,
-                  );
+        <AnimatePresence>
+          {widgets
+            .filter((w) => w.visible)
+            .map((w, index) => (
+              <MotionCard
+                key={w.id}
+                title={w.title}
+                layout={!reduced && dragging !== w.id}
+                layoutDependency={widgets
+                  .map((x) => `${x.id}:${x.size}:${x.visible}`)
+                  .join("|")}
+                variants={reduced ? fade : fadeUp}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{
+                  ...transitions.normal,
+                  delay: staggerDelay(index),
+                  layout: springs.smooth,
+                }}
+                data-dragging={dragging === w.id || undefined}
+                style={{ borderRadius: 24 }}
+                className={`widget-${w.id} size-${w.size ?? "M"} ${w.id === "timer" ? "timer-card" : ""}`}
+                draggable={gridEditing}
+                onDragStartCapture={(e) => {
+                  e.dataTransfer.setData("application/dashboard-widget", w.id);
+                  setDragging(w.id);
+                }}
+                onDragEndCapture={() => setDragging("")}
+                onDragOver={(e) => {
+                  if (gridEditing) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  if (gridEditing) {
+                    e.preventDefault();
+                    setDragging("");
+                    moveWidget(
+                      e.dataTransfer.getData("application/dashboard-widget"),
+                      w.id,
+                    );
+                  }
+                }}
+                action={
+                  w.id === "projects" || w.id === "notes" ? (
+                    <IconButton
+                      label={
+                        w.id === "projects" ? "Все проекты" : "Все заметки"
+                      }
+                      onClick={() =>
+                        navigate(w.id === "projects" ? "projects" : "notes")
+                      }
+                    >
+                      <ArrowRight size={17} />
+                    </IconButton>
+                  ) : (
+                    <IconButton
+                      label={`Настроить: ${w.title}`}
+                      onClick={() => setCustomize(true)}
+                    >
+                      <SlidersHorizontal size={14} />
+                    </IconButton>
+                  )
                 }
-              }}
-              action={
-                w.id === "projects" || w.id === "notes" ? (
-                  <IconButton
-                    label={w.id === "projects" ? "Все проекты" : "Все заметки"}
-                    onClick={() =>
-                      navigate(w.id === "projects" ? "projects" : "notes")
+              >
+                {gridEditing && (
+                  <div className="widget-controls">
+                    <select
+                      aria-label={`Размер ${w.title}`}
+                      value={w.size ?? "M"}
+                      onChange={(e) =>
+                        commitWidgets(
+                          widgets.map((x) =>
+                            x.id === w.id
+                              ? {
+                                  ...x,
+                                  size: e.target.value as "S" | "M" | "L",
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                    >
+                      {["S", "M", "L"].map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                    <Button
+                      secondary
+                      onClick={() =>
+                        commitWidgets(
+                          widgets.map((x) =>
+                            x.id === w.id ? { ...x, visible: false } : x,
+                          ),
+                        )
+                      }
+                    >
+                      Скрыть
+                    </Button>
+                    <IconButton
+                      label={`Переместить выше ${w.title}`}
+                      disabled={widgets.indexOf(w) === 0}
+                      onClick={() =>
+                        moveWidget(w.id, widgets[widgets.indexOf(w) - 1].id)
+                      }
+                    >
+                      <ArrowUp size={16} />
+                    </IconButton>
+                  </div>
+                )}
+                <motion.div
+                  layout={!reduced ? "position" : false}
+                  className="widget-content"
+                  transition={{ layout: springs.smooth }}
+                >
+                  {content(w.id, w.size)}
+                </motion.div>
+              </MotionCard>
+            ))}
+        </AnimatePresence>
+      </div>
+      <AnimatePresence>
+        {customize && (
+          <Modal title="Ваш дашборд" onClose={closeCustomize}>
+            <div className="form-stack">
+              <label>
+                Заголовок страницы
+                <input
+                  defaultValue={state.settings.dashboardTitle || "Дашборд"}
+                  onBlur={(e) =>
+                    void action({
+                      action: "settings",
+                      data: { dashboardTitle: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Подзаголовок
+                <input
+                  defaultValue={
+                    state.settings.dashboardSubtitle ??
+                    "Всё важное — в одном месте."
+                  }
+                  onBlur={(e) =>
+                    void action({
+                      action: "settings",
+                      data: { dashboardSubtitle: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <h3 style={{ marginTop: 24 }}>Показатели</h3>
+            <div className="widget-settings">
+              {kpis.map((k, i) => (
+                <div className="row" key={k.id}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Показать показатель ${k.title}`}
+                    checked={k.visible}
+                    onChange={(e) =>
+                      saveKpis(
+                        kpis.map((v) =>
+                          v.id === k.id
+                            ? { ...v, visible: e.target.checked }
+                            : v,
+                        ),
+                      )
                     }
-                  >
-                    <ArrowRight size={17} />
-                  </IconButton>
-                ) : (
+                  />
+                  <input
+                    aria-label="Название показателя"
+                    value={k.title}
+                    onChange={(e) =>
+                      saveKpis(
+                        kpis.map((v) =>
+                          v.id === k.id ? { ...v, title: e.target.value } : v,
+                        ),
+                      )
+                    }
+                  />
                   <IconButton
-                    label={`Настроить: ${w.title}`}
-                    onClick={() => setCustomize(true)}
+                    label="Показатель выше"
+                    disabled={i === 0}
+                    onClick={() => {
+                      const n = [...kpis];
+                      [n[i - 1], n[i]] = [n[i], n[i - 1]];
+                      saveKpis(n);
+                    }}
                   >
-                    <SlidersHorizontal size={14} />
+                    <ArrowUp size={16} />
                   </IconButton>
-                )
-              }
-            >
-              {gridEditing && (
-                <div className="widget-controls">
+                </div>
+              ))}
+            </div>
+            <h3>Виджеты</h3>
+            <p className="muted">
+              Настройте названия, видимость и порядок виджетов. Изменения
+              сохраняются при закрытии этого окна.
+            </p>
+            <div className="widget-settings">
+              {widgets.map((w, i) => (
+                <div
+                  className="row"
+                  key={w.id}
+                  draggable
+                  onDragStart={(e) =>
+                    e.dataTransfer.setData("application/dashboard-widget", w.id)
+                  }
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    moveWidget(
+                      e.dataTransfer.getData("application/dashboard-widget"),
+                      w.id,
+                    );
+                  }}
+                >
                   <select
                     aria-label={`Размер ${w.title}`}
                     value={w.size ?? "M"}
                     onChange={(e) =>
-                      commitWidgets(
+                      saveWidgets(
                         widgets.map((x) =>
                           x.id === w.id
                             ? { ...x, size: e.target.value as "S" | "M" | "L" }
@@ -842,211 +1022,75 @@ export default function Dashboard() {
                       <option key={s}>{s}</option>
                     ))}
                   </select>
-                  <Button
-                    secondary
-                    onClick={() =>
-                      commitWidgets(
-                        widgets.map((x) =>
-                          x.id === w.id ? { ...x, visible: false } : x,
+                  <input
+                    type="checkbox"
+                    aria-label={`Показать ${w.title}`}
+                    checked={w.visible}
+                    onChange={(e) =>
+                      saveWidgets(
+                        widgets.map((v) =>
+                          v.id === w.id
+                            ? { ...v, visible: e.target.checked }
+                            : v,
                         ),
                       )
                     }
-                  >
-                    Скрыть
-                  </Button>
-                  <IconButton
-                    label={`Переместить выше ${w.title}`}
-                    disabled={widgets.indexOf(w) === 0}
-                    onClick={() =>
-                      moveWidget(w.id, widgets[widgets.indexOf(w) - 1].id)
+                  />
+                  <input
+                    aria-label="Название виджета"
+                    value={w.title}
+                    onChange={(e) =>
+                      saveWidgets(
+                        widgets.map((v) =>
+                          v.id === w.id ? { ...v, title: e.target.value } : v,
+                        ),
+                      )
                     }
+                  />
+                  <IconButton
+                    label="Выше"
+                    disabled={i === 0}
+                    onClick={() => {
+                      const n = [...widgets];
+                      [n[i - 1], n[i]] = [n[i], n[i - 1]];
+                      saveWidgets(n);
+                    }}
                   >
-                    <ArrowUp size={16} />
+                    <ArrowUp size={17} />
+                  </IconButton>
+                  <IconButton
+                    label="Ниже"
+                    disabled={i === widgets.length - 1}
+                    onClick={() => {
+                      const n = [...widgets];
+                      [n[i + 1], n[i]] = [n[i], n[i + 1]];
+                      saveWidgets(n);
+                    }}
+                  >
+                    <ArrowDown size={17} />
                   </IconButton>
                 </div>
-              )}
-              {content(w.id, w.size)}
-            </Card>
-          ))}
-      </div>
-      {customize && (
-        <Modal title="Ваш дашборд" onClose={closeCustomize}>
-          <div className="form-stack">
-            <label>
-              Заголовок страницы
-              <input
-                defaultValue={state.settings.dashboardTitle || "Дашборд"}
-                onBlur={(e) =>
-                  void action({
-                    action: "settings",
-                    data: { dashboardTitle: e.target.value },
-                  })
-                }
-              />
-            </label>
-            <label>
-              Подзаголовок
-              <input
-                defaultValue={
-                  state.settings.dashboardSubtitle ??
-                  "Всё важное — в одном месте."
-                }
-                onBlur={(e) =>
-                  void action({
-                    action: "settings",
-                    data: { dashboardSubtitle: e.target.value },
-                  })
-                }
-              />
-            </label>
-          </div>
-          <h3 style={{ marginTop: 24 }}>Показатели</h3>
-          <div className="widget-settings">
-            {kpis.map((k, i) => (
-              <div className="row" key={k.id}>
-                <input
-                  type="checkbox"
-                  aria-label={`Показать показатель ${k.title}`}
-                  checked={k.visible}
-                  onChange={(e) =>
-                    saveKpis(
-                      kpis.map((v) =>
-                        v.id === k.id ? { ...v, visible: e.target.checked } : v,
-                      ),
-                    )
-                  }
-                />
-                <input
-                  aria-label="Название показателя"
-                  value={k.title}
-                  onChange={(e) =>
-                    saveKpis(
-                      kpis.map((v) =>
-                        v.id === k.id ? { ...v, title: e.target.value } : v,
-                      ),
-                    )
-                  }
-                />
-                <IconButton
-                  label="Показатель выше"
-                  disabled={i === 0}
-                  onClick={() => {
-                    const n = [...kpis];
-                    [n[i - 1], n[i]] = [n[i], n[i - 1]];
-                    saveKpis(n);
-                  }}
-                >
-                  <ArrowUp size={16} />
-                </IconButton>
-              </div>
-            ))}
-          </div>
-          <h3>Виджеты</h3>
-          <p className="muted">
-            Настройте названия, видимость и порядок виджетов. Изменения
-            сохраняются при закрытии этого окна.
-          </p>
-          <div className="widget-settings">
-            {widgets.map((w, i) => (
-              <div
-                className="row"
-                key={w.id}
-                draggable
-                onDragStart={(e) =>
-                  e.dataTransfer.setData("application/dashboard-widget", w.id)
-                }
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  moveWidget(
-                    e.dataTransfer.getData("application/dashboard-widget"),
-                    w.id,
-                  );
-                }}
-              >
-                <select
-                  aria-label={`Размер ${w.title}`}
-                  value={w.size ?? "M"}
-                  onChange={(e) =>
-                    saveWidgets(
-                      widgets.map((x) =>
-                        x.id === w.id
-                          ? { ...x, size: e.target.value as "S" | "M" | "L" }
-                          : x,
-                      ),
-                    )
-                  }
-                >
-                  {["S", "M", "L"].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <input
-                  type="checkbox"
-                  aria-label={`Показать ${w.title}`}
-                  checked={w.visible}
-                  onChange={(e) =>
-                    saveWidgets(
-                      widgets.map((v) =>
-                        v.id === w.id ? { ...v, visible: e.target.checked } : v,
-                      ),
-                    )
-                  }
-                />
-                <input
-                  aria-label="Название виджета"
-                  value={w.title}
-                  onChange={(e) =>
-                    saveWidgets(
-                      widgets.map((v) =>
-                        v.id === w.id ? { ...v, title: e.target.value } : v,
-                      ),
-                    )
-                  }
-                />
-                <IconButton
-                  label="Выше"
-                  disabled={i === 0}
-                  onClick={() => {
-                    const n = [...widgets];
-                    [n[i - 1], n[i]] = [n[i], n[i - 1]];
-                    saveWidgets(n);
-                  }}
-                >
-                  <ArrowUp size={17} />
-                </IconButton>
-                <IconButton
-                  label="Ниже"
-                  disabled={i === widgets.length - 1}
-                  onClick={() => {
-                    const n = [...widgets];
-                    [n[i + 1], n[i]] = [n[i], n[i + 1]];
-                    saveWidgets(n);
-                  }}
-                >
-                  <ArrowDown size={17} />
-                </IconButton>
-              </div>
-            ))}
-          </div>
-          <Button
-            secondary
-            onClick={() => {
-              saveWidgets(defaults);
-              saveKpis(kpiDefaults);
-              void action({
-                action: "settings",
-                data: {
-                  dashboardTitle: "Дашборд",
-                  dashboardSubtitle: "Всё важное — в одном месте.",
-                },
-              });
-            }}
-          >
-            Вернуть исходный вид
-          </Button>
-        </Modal>
-      )}
+              ))}
+            </div>
+            <Button
+              secondary
+              onClick={() => {
+                saveWidgets(defaults);
+                saveKpis(kpiDefaults);
+                void action({
+                  action: "settings",
+                  data: {
+                    dashboardTitle: "Дашборд",
+                    dashboardSubtitle: "Всё важное — в одном месте.",
+                  },
+                });
+              }}
+            >
+              Вернуть исходный вид
+            </Button>
+          </Modal>
+        )}
+      </AnimatePresence>
     </>
   );
 }

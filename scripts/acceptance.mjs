@@ -47,6 +47,8 @@ const nav = async (name) => {
     .getByRole("button", { name: new RegExp(`^${name}`) })
     .click();
   await page.getByRole("heading", { name, exact: true }).first().waitFor();
+  // Presence keeps outgoing DOM briefly; assertions below inspect the settled route.
+  await expect(page.locator(".route-surface[data-exiting]")).toHaveCount(0);
 };
 const modal = () => page.getByRole("dialog");
 const save = async () => {
@@ -108,6 +110,14 @@ try {
   });
   await page.reload();
   await login();
+  await nav("Проекты");
+  await expect(page.locator(".projects-overview")).toBeVisible();
+  await expect(page.locator(".project-card").first()).toBeVisible();
+  await page.screenshot({ path: join(evidence, "projects-overview.png") });
+  await page.locator(".project-card").first().click();
+  await expect(page.locator(".project-detail-hero")).toBeVisible();
+  await page.screenshot({ path: join(evidence, "project-detail.png") });
+  await nav("Дашборд");
 
   // Habits: both goal kinds, their five visual states and editable history.
   const study = await call({
@@ -363,9 +373,9 @@ try {
   await modal()
     .getByRole("textbox", { name: "Название", exact: false })
     .fill("Повтор каждые три дня");
-  await modal()
-    .getByLabel("Дедлайн")
-    .fill(today + "T09:00");
+  await modal().getByRole("button", { name: "Выбрать дату и время" }).click();
+  await modal().getByRole("button", { name: "Сегодня", exact: true }).click();
+  await modal().getByLabel("Время", { exact: true }).fill("09:00");
   await modal().getByLabel("Повтор", { exact: true }).selectOption("daily");
   await modal().getByLabel("Интервал", { exact: false }).fill("3");
   await save();

@@ -1,3 +1,4 @@
+import AnimatedNumber from "../animation/AnimatedNumber";
 import { useApp, useData, active, action } from "../store";
 import { formatMoney } from "../../shared/calculations";
 import { budgetProgress } from "../../shared/finance-planning";
@@ -41,7 +42,7 @@ export default function FinancePlanning({
                   <span>{p.percentage}%</span>
                 </button>
                 <p>
-                  {formatMoney(p.spent, b.currency)} /{" "}
+                  <AnimatedNumber value={p.spent} format={(v) => formatMoney(v, b.currency)} /> /{" "}
                   {formatMoney(b.amount, b.currency)} в месяц
                 </p>
                 <div className="progress">
@@ -71,7 +72,7 @@ export default function FinancePlanning({
                 </span>
               </button>
               <p>
-                {formatMoney(g.current_amount, g.currency)} /{" "}
+                <AnimatedNumber value={g.current_amount} format={(v) => formatMoney(v, g.currency)} /> /{" "}
                 {formatMoney(g.target_amount, g.currency)}
               </p>
               <div className="progress">

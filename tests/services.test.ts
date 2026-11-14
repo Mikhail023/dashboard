@@ -121,7 +121,7 @@ describe("SQLite and migrations", () => {
           upgraded.db
             .prepare("SELECT count(*) AS n FROM schema_migrations")
             .get(),
-        ).toEqual({ n: 3 });
+        ).toEqual({ n: 4 });
       } finally {
         upgraded.close();
       }
@@ -164,7 +164,7 @@ describe("SQLite and migrations", () => {
     repo.migrate(join(process.cwd(), "migrations"));
     expect(
       repo.db.prepare("SELECT count(*) AS n FROM schema_migrations").get(),
-    ).toEqual({ n: 3 });
+    ).toEqual({ n: 4 });
     expect(repo.db.pragma("foreign_keys", { simple: true })).toBe(1);
     expect(repo.db.pragma("journal_mode", { simple: true })).toBe("wal");
   });

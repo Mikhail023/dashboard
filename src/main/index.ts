@@ -40,7 +40,7 @@ import {
   type Row,
 } from "../shared/model";
 import { localDay } from "../shared/smart-input";
-import { invoiceTotal, occurrences } from "../shared/calculations";
+import { formatMoney, invoiceTotal, occurrences } from "../shared/calculations";
 import { splashEnabled, splashTiming } from "../shared/splash";
 import { createUpdateService } from "./updates";
 import {
@@ -87,6 +87,7 @@ let revealInProgress = false;
 let dashboardVisible = false;
 let splashShownAt = 0;
 let updates: ReturnType<typeof createUpdateService> | undefined;
+let backgroundTick: ReturnType<typeof setInterval> | undefined;
 const wait = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -697,7 +698,8 @@ app.whenReady().then(async () => {
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     icon: join(app.getAppPath(), "build/icon.png"),
     show: false,
-    backgroundColor: splashAppearance.dark ? "#0c0f14" : "#EEF1EF",
+    // The renderer owns the final surface; this prevents a dark flash while it starts.
+    backgroundColor: splashAppearance.dark ? "#211c1a" : "#f4f1ed",
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -806,10 +808,46 @@ app.whenReady().then(async () => {
     ]),
   );
   tray.on("click", () => win.show());
-  setInterval(() => {
+  backgroundTick = setInterval(() => {
     const minutes = Number(repo.settings().autoLock ?? 5);
     if (authenticated && minutes > 0 && Date.now() - activity > minutes * 60000)
       lock();
+    const today = localDay();
+    const todayUtc = Date.parse(`${today}T00:00:00Z`);
+    for (const subscription of repo
+      .rows("subscriptions")
+      .filter((item) => !item.deleted_at && item.active)) {
+      const dueUtc = Date.parse(`${subscription.next_payment_at}T00:00:00Z`);
+      const daysUntilDue = Math.round((dueUtc - todayUtc) / 86400000);
+      if (
+        daysUntilDue <= subscription.reminder_days &&
+        subscription.reminder_sent_for !== subscription.next_payment_at
+      ) {
+        repo.db
+          .prepare(
+            "UPDATE subscriptions SET reminder_sent_for=?,updated_at=? WHERE id=? AND reminder_sent_for<>?",
+          )
+          .run(
+            subscription.next_payment_at,
+            new Date().toISOString(),
+            subscription.id,
+            subscription.next_payment_at,
+          );
+        if (Notification.isSupported())
+          new Notification({
+            title: authenticated
+              ? `Оплата подписки: ${subscription.name}`
+              : "Напоминание о подписке",
+            body: authenticated
+              ? daysUntilDue === 0
+                ? `Сегодня · ${formatMoney(subscription.amount, subscription.currency)}`
+                : daysUntilDue > 0
+                  ? `Через ${daysUntilDue} дн. · ${formatMoney(subscription.amount, subscription.currency)}`
+                  : `Срок оплаты прошёл · ${formatMoney(subscription.amount, subscription.currency)}`
+              : "Скоро срок очередной оплаты.",
+          }).show();
+      }
+    }
     if (!authenticated) return;
     const now = new Date();
     for (const event of repo.rows("events").filter((e) => !e.deleted_at)) {
@@ -878,6 +916,7 @@ app.on("activate", () => {
 });
 app.on("before-quit", () => {
   quitting = true;
+  if (backgroundTick) clearInterval(backgroundTick);
   updates?.stop();
   if (repo) {
     if (timer.running_since) timerCommand("pause");

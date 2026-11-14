@@ -1,4 +1,4 @@
-import brandLogo from "../../../build/icon.png";
+import brandLogo from "../../../build/logo.svg";
 
 /** The single source for the Dashboard mark used inside the renderer. */
 export default function BrandLogo() {

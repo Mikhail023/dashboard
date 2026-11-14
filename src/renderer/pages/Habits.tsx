@@ -1,10 +1,15 @@
+import { AnimatePresence } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { useMotionReduced } from "../animation/MotionProvider";
+import { transitions } from "../animation/transitions";
 import { useState } from "react";
 import { addMonths } from "date-fns";
 import { useApp, useData } from "../store";
-import { Button, Card, Empty, Heading, Tabs } from "../components/UI";
+import { Button, MotionCard, Empty, Heading, Tabs } from "../components/UI";
 import HabitPanel from "../components/HabitPanel";
 import { localDay } from "../../shared/smart-input";
 export default function Habits() {
+  const reduced = useMotionReduced();
   const data = useData(),
     selected = useApp((s) => s.selected),
     edit = useApp((s) => s.edit);
@@ -73,38 +78,56 @@ export default function Habits() {
         </label>
       </div>
       <div className="form-stack">
-        {goals.map((goal) => (
-          <Card key={goal.id} className="habit-card">
-            <div className="habit-actions">
-              {goal.project_id && (
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    useApp.getState().navigate("projects", goal.project_id)
-                  }
-                >
-                  {data.projects.find((p) => p.id === goal.project_id)?.name}
-                </button>
-              )}
-              <Button secondary onClick={() => edit("daily_goals", goal)}>
-                Настроить {goal.name}
-              </Button>
-            </div>
-            <HabitPanel goal={goal} months={months} anchor={anchor} />
-          </Card>
-        ))}
-        {!goals.length && (
-          <Card>
-            <Empty
-              text={
-                archived
-                  ? "В архиве пока нет привычек"
-                  : "Начните с одной привычки"
-              }
-              onCreate={() => edit("daily_goals")}
-            />
-          </Card>
-        )}
+        <AnimatePresence initial={false}>
+          {goals.map((goal) => (
+            <MotionCard
+              key={goal.id}
+              layout={!reduced ? "position" : false}
+              variants={reduced ? fade : fadeUp}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={reduced ? transitions.exit : transitions.normal}
+              className="habit-card"
+            >
+              <div className="habit-actions">
+                {goal.project_id && (
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      useApp.getState().navigate("projects", goal.project_id)
+                    }
+                  >
+                    {data.projects.find((p) => p.id === goal.project_id)?.name}
+                  </button>
+                )}
+                <Button secondary onClick={() => edit("daily_goals", goal)}>
+                  Настроить {goal.name}
+                </Button>
+              </div>
+              <HabitPanel goal={goal} months={months} anchor={anchor} />
+            </MotionCard>
+          ))}
+          {!goals.length && (
+            <MotionCard
+              key="empty"
+              variants={reduced ? fade : fadeUp}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={reduced ? transitions.exit : transitions.normal}
+            >
+              <Empty
+                text={
+                  archived
+                    ? "В архиве пока нет привычек"
+                    : "Начните с одной привычки"
+                }
+                onCreate={() => edit("daily_goals")}
+              />
+            </MotionCard>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

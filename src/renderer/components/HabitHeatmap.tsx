@@ -1,3 +1,4 @@
+import { useValueFeedback } from "../animation/useValueFeedback";
 import { memo, useMemo, type CSSProperties } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -11,27 +12,35 @@ import {
 const Tile = memo(function Tile({
   day,
   value,
-  goal,
+  name,
+  targetValue,
+  unit,
+  startDate,
   outside,
   today,
   onSelect,
 }: {
   day: string;
   value: number;
-  goal: Row<"daily_goals">;
+  name: string;
+  targetValue: number;
+  unit: string;
+  startDate: string;
   outside: boolean;
   today: string;
   onSelect: (day: string) => void;
 }) {
-  const progress = habitProgress(value, goal.target_value);
-  const text = `${format(new Date(day + "T12:00"), "d MMMM yyyy", { locale: ru })}\n${goal.name}\n${formatHabitValue(value, goal.unit)} / ${formatHabitValue(goal.target_value, goal.unit)}\n${Math.floor(progress * 100)}%`;
+  const progress = habitProgress(value, targetValue);
+  const ref = useValueFeedback<HTMLButtonElement>(value, progress >= 1);
+  const text = `${format(new Date(day + "T12:00"), "d MMMM yyyy", { locale: ru })}\n${name}\n${formatHabitValue(value, unit)} / ${formatHabitValue(targetValue, unit)}\n${Math.floor(progress * 100)}%`;
   return (
     <button
+      ref={ref}
       type="button"
       className={`habit-tile ${outside ? "outside" : ""}`}
       data-day={day}
       data-level={habitLevel(progress)}
-      disabled={outside || day > today || day < goal.start_date}
+      disabled={outside || day > today || day < startDate}
       title={text}
       aria-label={text}
       aria-current={day === today ? "date" : undefined}
@@ -104,7 +113,10 @@ export default memo(function HabitHeatmap({
               key={cell.day}
               {...cell}
               value={entries.get(cell.day)?.value ?? 0}
-              goal={goal}
+              name={goal.name}
+              targetValue={goal.target_value}
+              unit={goal.unit}
+              startDate={goal.start_date}
               today={today}
               onSelect={onSelect}
             />

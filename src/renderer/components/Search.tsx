@@ -165,6 +165,8 @@ export default function Search() {
         <SearchIcon size={20} />
         <input
           ref={input}
+          autoFocus
+          data-autofocus="true"
           role="combobox"
           aria-label="Поиск и команды"
           aria-controls="search-results"

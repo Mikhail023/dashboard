@@ -1,3 +1,4 @@
+import { AnimatePresence } from "motion/react";
 import {
   useLayoutEffect,
   useRef,
@@ -55,7 +56,10 @@ export default function VirtualList<
       ),
     [],
   );
-  if (items.length < 80) return <>{items.map(render)}</>;
+  if (items.length < 80)
+    return (
+      <AnimatePresence initial={false}>{items.map(render)}</AnimatePresence>
+    );
   let total = 0;
   const layout = items.map((item) => {
     const key = item.id + (item.occurrence_date ?? "");

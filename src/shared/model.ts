@@ -52,6 +52,16 @@ export const schemas = {
     currency: z.enum(["RUB", "USD", "EUR"]).default("RUB"),
     status: z.enum(["active", "completed"]).default("active"),
   }),
+  subscriptions: z.object({
+    name: title,
+    amount: money.positive(),
+    currency: z.enum(["RUB", "USD", "EUR"]).default("RUB"),
+    interval: z.enum(["daily", "weekly", "monthly", "yearly"]),
+    next_payment_at: calendarDay,
+    reminder_days: z.number().int().min(0).max(30).default(1),
+    reminder_sent_for: calendarDay.or(z.literal("")).default(""),
+    active: z.boolean().default(true),
+  }),
   inbox: z.object({
     title,
     content: text.default(""),

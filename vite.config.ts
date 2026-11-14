@@ -8,6 +8,16 @@ export default defineConfig({
   build: {
     outDir: "dist",
     rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            /node_modules\/(motion|framer-motion|motion-dom|motion-utils)\//.test(
+              id,
+            )
+          )
+            return "motion";
+        },
+      },
       input: {
         main: resolve(__dirname, "index.html"),
         splash: resolve(__dirname, "splash.html"),

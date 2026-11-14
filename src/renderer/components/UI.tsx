@@ -1,4 +1,10 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import AnimatedNumber from "../animation/AnimatedNumber";
+import { motion, LayoutGroup, useIsPresent } from "motion/react";
+import { useMotionReduced } from "../animation/MotionProvider";
+import { fade, surface } from "../animation/variants";
+import { transitions } from "../animation/transitions";
+import { springs } from "../animation/tokens";
+import { useEffect, useRef, useId, forwardRef, type ReactNode } from "react";
 import { X, Plus, Inbox, ArrowUpRight } from "lucide-react";
 import { labels } from "../../shared/model";
 export function Button({
@@ -27,20 +33,17 @@ export function IconButton({
     </button>
   );
 }
-export function Card({
-  children,
-  className = "",
-  title,
-  action,
-  ...props
-}: {
-  children: ReactNode;
-  className?: string;
-  title?: string;
-  action?: ReactNode;
-} & Omit<React.HTMLAttributes<HTMLElement>, "title">) {
+export const Card = forwardRef<
+  HTMLElement,
+  {
+    children: ReactNode;
+    className?: string;
+    title?: string;
+    action?: ReactNode;
+  } & Omit<React.HTMLAttributes<HTMLElement>, "title">
+>(function Card({ children, className = "", title, action, ...props }, ref) {
   return (
-    <section className={`card ${className}`} {...props}>
+    <section ref={ref} className={`card ${className}`} {...props}>
       {title && (
         <div className="card-heading">
           <h2>{title}</h2>
@@ -50,7 +53,8 @@ export function Card({
       {children}
     </section>
   );
-}
+});
+export const MotionCard = motion.create(Card);
 export function Badge({ status }: { status: string }) {
   return <span className={`badge ${status}`}>{labels[status] ?? status}</span>;
 }
@@ -62,7 +66,14 @@ export function Empty({
   onCreate?: () => void;
 }) {
   return (
-    <div className="empty">
+    <motion.div
+      className="empty"
+      variants={fade}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      transition={transitions.fast}
+    >
       <Inbox size={34} strokeWidth={1.2} />
       <h3>{text}</h3>
       <p>Добавьте первую запись — и всё будет под рукой.</p>
@@ -72,7 +83,7 @@ export function Empty({
           Добавить
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 }
 export function Heading({
@@ -105,14 +116,29 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const present = useIsPresent();
+  const reduced = useMotionReduced();
   const ref = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
+  if (present && !previousFocus.current && typeof document !== "undefined")
+    previousFocus.current = document.activeElement as HTMLElement;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
-    ref.current?.querySelector<HTMLElement>("input,button,select")?.focus();
+    if (ref.current) ref.current.inert = !present;
+    if (!present) return;
+    ref.current
+      ?.querySelector<HTMLElement>("[data-autofocus],input:not([type=hidden]),button,select")
+      ?.focus();
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
+      const dialogs = document.querySelectorAll(
+        '[role="dialog"]:not([aria-hidden="true"])',
+      );
+      if (dialogs[dialogs.length - 1] !== ref.current) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeRef.current();
+      }
       if (e.key === "Tab") {
         const nodes = ref.current?.querySelectorAll<HTMLElement>(
           'input:not([disabled]),button:not([disabled]),select,textarea,[tabindex="0"]',
@@ -132,18 +158,31 @@ export function Modal({
     window.addEventListener("keydown", key);
     return () => {
       window.removeEventListener("keydown", key);
-      previous?.focus();
+      previousFocus.current?.focus();
+      previousFocus.current = null;
     };
-  }, []);
+  }, [present]);
   return (
-    <div
+    <motion.div
       className="modal-backdrop"
+      variants={fade}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      transition={transitions.fast}
+      style={{ pointerEvents: present ? "auto" : "none" }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
+      <motion.div
         ref={ref}
+        variants={reduced ? fade : surface}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        transition={transitions.fast}
+        aria-hidden={!present || undefined}
         className={`modal ${wide ? "wide" : ""}`}
         role="dialog"
         aria-modal="true"
@@ -156,8 +195,8 @@ export function Modal({
           </IconButton>
         </div>
         {children}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 export function Stat({
@@ -177,7 +216,9 @@ export function Stat({
         <span>{label}</span>
         <ArrowUpRight size={18} />
       </div>
-      <strong>{value}</strong>
+      <strong>
+        {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
+      </strong>
       <small>{caption}</small>
     </div>
   );
@@ -191,19 +232,50 @@ export function Tabs({
   options: [string, string][];
   onChange: (value: string) => void;
 }) {
+  const id = useId();
+  const reduced = useMotionReduced();
   return (
-    <div className="tabs" role="tablist">
-      {options.map(([id, label]) => (
-        <button
-          key={id}
-          role="tab"
-          aria-selected={value === id}
-          className={id === value ? "active" : ""}
-          onClick={() => onChange(id)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <LayoutGroup id={id}>
+      <div className="tabs" role="tablist">
+        {options.map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={value === id}
+            tabIndex={value === id ? 0 : -1}
+            onKeyDown={(e) => {
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
+                return;
+              e.preventDefault();
+              const current = options.findIndex(([key]) => key === id);
+              const next =
+                e.key === "Home"
+                  ? 0
+                  : e.key === "End"
+                    ? options.length - 1
+                    : (current +
+                        (e.key === "ArrowRight" ? 1 : -1) +
+                        options.length) %
+                      options.length;
+              onChange(options[next][0]);
+            const buttons = e.currentTarget.parentElement?.querySelectorAll("button");
+            buttons?.item(next)?.focus();
+            }}
+            className={id === value ? "active" : ""}
+            onClick={() => onChange(id)}
+          >
+            {value === id && (
+              <motion.i
+                className="tab-active-indicator"
+                aria-hidden="true"
+                layoutId={reduced ? undefined : "selection"}
+                transition={springs.snappy}
+              />
+            )}
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+    </LayoutGroup>
   );
 }

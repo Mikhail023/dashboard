@@ -1,3 +1,7 @@
+import { motion } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { useMotionReduced } from "../animation/MotionProvider";
+import { transitions } from "../animation/transitions";
 import { useState } from "react";
 import {
   addDays,
@@ -19,6 +23,7 @@ import { occurrences } from "../../shared/calculations";
 import { tasksInRange } from "../../shared/recurrence";
 import { Button, Heading, IconButton, Tabs } from "../components/UI";
 export default function Calendar() {
+  const reduced = useMotionReduced();
   const data = useData(),
     edit = useApp((s) => s.edit),
     weekStart = Number(useApp((s) => s.state?.settings.weekStart) ?? 1) as
@@ -93,7 +98,14 @@ export default function Calendar() {
           ]}
         />
       </div>
-      <div className={`calendar ${view}`}>
+      <motion.div
+        key={view + format(from, "yyyy-MM-dd")}
+        className={`calendar ${view}`}
+        variants={reduced ? fade : fadeUp}
+        initial="hidden"
+        animate="visible"
+        transition={reduced ? transitions.exit : transitions.normal}
+      >
         <div className="calendar-weekdays">
           {(view === "day" ? [date] : days.slice(0, 7)).map((d) => (
             <span key={String(d)}>{format(d, "EEEE", { locale: ru })}</span>
@@ -229,7 +241,7 @@ export default function Calendar() {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

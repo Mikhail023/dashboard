@@ -55,7 +55,14 @@ export class Repository {
       .prepare(`SELECT * FROM ${table} ORDER BY created_at DESC`)
       .all() as Record<string, unknown>[];
     for (const row of rows)
-      for (const key of ["pinned", "archived", "done", "all_day", "demo"])
+      for (const key of [
+        "pinned",
+        "archived",
+        "done",
+        "all_day",
+        "active",
+        "demo",
+      ])
         if (key in row) row[key] = Boolean(row[key]);
     return rows as Row<T>[];
   }
@@ -77,7 +84,7 @@ export class Repository {
       .prepare(`SELECT * FROM ${table} WHERE id=?`)
       .get(id) as Record<string, unknown> | undefined;
     const normalized = { ...previous };
-    for (const key of ["pinned", "archived", "done", "all_day"])
+    for (const key of ["pinned", "archived", "done", "all_day", "active"])
       if (key in normalized) normalized[key] = Boolean(normalized[key]);
     Object.assign(normalized, input);
     const fields = schemas[table].parse(normalized) as Record<string, unknown>;

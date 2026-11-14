@@ -1,3 +1,7 @@
+import { AnimatePresence, motion } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { transitions } from "../animation/transitions";
+import { useMotionReduced } from "../animation/MotionProvider";
 import { useState, useMemo } from "react";
 import VirtualList from "../components/VirtualList";
 import {
@@ -14,7 +18,7 @@ import { useApp, useData, active, action } from "../store";
 import {
   Badge,
   Button,
-  Card,
+  MotionCard,
   Empty,
   Heading,
   IconButton,
@@ -28,6 +32,7 @@ import {
 import { localDay } from "../../shared/smart-input";
 import { addDays, endOfDay } from "date-fns";
 export default function Tasks() {
+  const reduced = useMotionReduced();
   const data = useData(),
     edit = useApp((s) => s.edit),
     selected = useApp((s) => s.selected);
@@ -77,11 +82,17 @@ export default function Tasks() {
   function taskCard(task: TaskOccurrence) {
     const subtasks = active(data.subtasks).filter((s) => s.task_id === task.id);
     return (
-      <div
+      <motion.div
+        layout={!reduced && tasks.length < 80 ? "position" : false}
+        variants={reduced ? fade : fadeUp}
+        initial={tasks.length < 80 ? "hidden" : false}
+        animate="visible"
+        exit="exit"
+        transition={transitions.fast}
         className={`task-row ${expandedKey === task.id + task.due_date ? "expanded" : ""}`}
         key={task.id + task.due_date}
         draggable
-        onDragStart={(e) => {
+        onDragStartCapture={(e) => {
           e.dataTransfer.setData("text/plain", task.id);
           e.dataTransfer.setData(
             "application/task-occurrence",
@@ -223,7 +234,7 @@ export default function Tasks() {
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   }
   return (
@@ -332,64 +343,91 @@ export default function Tasks() {
           меняет всю серию.
         </p>
       )}
-      {!tasks.length ? (
-        <Card>
-          <Empty onCreate={() => edit("tasks")} />
-        </Card>
-      ) : view === "list" ? (
-        <Card className="task-list">
-          {<VirtualList items={tasks} render={taskCard} />}
-        </Card>
-      ) : (
-        <div className="kanban">
-          {["todo", "in_progress", "pending", "done"].map((s) => (
-            <section
-              key={s}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={async (e) => {
-                e.preventDefault();
-                const task = data.tasks.find(
-                  (t) => t.id === e.dataTransfer.getData("text/plain"),
-                );
-                if (!task) return;
-                const day = e.dataTransfer.getData(
-                  "application/task-occurrence",
-                );
-                if (task.recurrence_rule && day) {
-                  const result = await action({
-                    action: "completeTask",
-                    id: task.id,
-                    occurrence_date: day,
-                    completed: s === "done",
+      <AnimatePresence initial={false}>
+        {!tasks.length ? (
+          <MotionCard
+            key="empty"
+            variants={reduced ? fade : fadeUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={reduced ? transitions.exit : transitions.normal}
+          >
+            <Empty onCreate={() => edit("tasks")} />
+          </MotionCard>
+        ) : view === "list" ? (
+          <MotionCard
+            key="list"
+            variants={reduced ? fade : fadeUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={reduced ? transitions.exit : transitions.normal}
+            className="task-list"
+          >
+            {<VirtualList items={tasks} render={taskCard} />}
+          </MotionCard>
+        ) : (
+          <motion.div
+            key="kanban"
+            className="kanban"
+            variants={reduced ? fade : fadeUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={reduced ? transitions.exit : transitions.normal}
+          >
+            {["todo", "in_progress", "pending", "done"].map((s) => (
+              <section
+                key={s}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const task = data.tasks.find(
+                    (t) => t.id === e.dataTransfer.getData("text/plain"),
+                  );
+                  if (!task) return;
+                  const day = e.dataTransfer.getData(
+                    "application/task-occurrence",
+                  );
+                  if (task.recurrence_rule && day) {
+                    const result = await action({
+                      action: "completeTask",
+                      id: task.id,
+                      occurrence_date: day,
+                      completed: s === "done",
+                    });
+                    if (!result || s === "done") return;
+                  }
+                  await action({
+                    action: "save",
+                    table: "tasks",
+                    data: { id: task.id, status: s },
                   });
-                  if (!result || s === "done") return;
-                }
-                await action({
-                  action: "save",
-                  table: "tasks",
-                  data: { id: task.id, status: s },
-                });
-              }}
-            >
-              <div className="card-heading">
-                <h3>
-                  {labels[s]}{" "}
-                  <span className="muted">
-                    {tasks.filter((t) => t.status === s).length}
-                  </span>
-                </h3>
-                <IconButton
-                  label="Добавить задачу"
-                  onClick={() => edit("tasks", undefined, { status: s })}
-                >
-                  <Plus size={16} />
-                </IconButton>
-              </div>
-              {tasks.filter((t) => t.status === s).map(taskCard)}
-            </section>
-          ))}
-        </div>
-      )}
+                }}
+              >
+                <div className="card-heading">
+                  <h3>
+                    {labels[s]}{" "}
+                    <span className="muted">
+                      {tasks.filter((t) => t.status === s).length}
+                    </span>
+                  </h3>
+                  <IconButton
+                    label="Добавить задачу"
+                    onClick={() => edit("tasks", undefined, { status: s })}
+                  >
+                    <Plus size={16} />
+                  </IconButton>
+                </div>
+                <AnimatePresence initial={false}>
+                  {tasks.filter((t) => t.status === s).map(taskCard)}
+                </AnimatePresence>
+              </section>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

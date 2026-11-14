@@ -3,8 +3,8 @@
 export const splashEnabled = true;
 
 export const splashTiming = {
-  minimumVisibleMs: 1_700,
-  fadeOutMs: 260,
+  minimumVisibleMs: 2_000,
+  fadeOutMs: 320,
 } as const;
 
 export type SplashAppearance = {

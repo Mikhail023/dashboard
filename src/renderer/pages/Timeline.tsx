@@ -1,3 +1,8 @@
+import { AnimatePresence, motion } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { staggerDelay } from "../animation/tokens";
+import { useMotionReduced } from "../animation/MotionProvider";
+import { transitions } from "../animation/transitions";
 import { GoalDayDialog } from "../components/HabitPanel";
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
@@ -7,6 +12,7 @@ import { localDay } from "../../shared/smart-input";
 import { formatMoney } from "../../shared/calculations";
 import { Button, Card, Heading, Stat } from "../components/UI";
 export default function Timeline() {
+  const reduced = useMotionReduced();
   const data = useData(),
     currency = useApp((s) => s.state?.settings.currency) ?? "RUB";
   const [entryId, setEntryId] = useState("");
@@ -87,51 +93,60 @@ export default function Timeline() {
           year: "numeric",
         })}
       >
-        {overview.items.map((item) => (
-          <button
-            className="simple-row timeline-item"
-            key={item.key}
-            onClick={() => {
-              if (item.table === "daily_goal_entries") setEntryId(item.id);
-              else if (item.table === "notes")
-                useApp.getState().navigate("notes", item.id);
-              else
-                useApp.getState().edit(
-                  item.table,
-                  data[item.table].find((r) => r.id === item.id),
-                );
-            }}
-          >
-            <time>
-              {item.unknownTime
-                ? "Весь день"
-                : format(new Date(item.time), "HH:mm")}
-            </time>
-            <span>
-              <strong>{item.title}</strong>
-              <small className="block muted">
-                {item.label}
-                {item.project_id
-                  ? ` · ${data.projects.find((p) => p.id === item.project_id)?.name ?? ""}`
-                  : ""}
-              </small>
-            </span>
-            {item.amount !== undefined && (
-              <span>{formatMoney(item.amount, item.currency)}</span>
-            )}
-          </button>
-        ))}
+        <AnimatePresence initial={false}>
+          {overview.items.map((item, index) => (
+            <motion.button
+              variants={reduced ? fade : fadeUp}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={{ ...transitions.fast, delay: staggerDelay(index) }}
+              className="simple-row timeline-item"
+              key={item.key}
+              onClick={() => {
+                if (item.table === "daily_goal_entries") setEntryId(item.id);
+                else if (item.table === "notes")
+                  useApp.getState().navigate("notes", item.id);
+                else
+                  useApp.getState().edit(
+                    item.table,
+                    data[item.table].find((r) => r.id === item.id),
+                  );
+              }}
+            >
+              <time>
+                {item.unknownTime
+                  ? "Весь день"
+                  : format(new Date(item.time), "HH:mm")}
+              </time>
+              <span>
+                <strong>{item.title}</strong>
+                <small className="block muted">
+                  {item.label}
+                  {item.project_id
+                    ? ` · ${data.projects.find((p) => p.id === item.project_id)?.name ?? ""}`
+                    : ""}
+                </small>
+              </span>
+              {item.amount !== undefined && (
+                <span>{formatMoney(item.amount, item.currency)}</span>
+              )}
+            </motion.button>
+          ))}
+        </AnimatePresence>
         {!overview.items.length && (
           <p className="muted">В этот день нет записей.</p>
         )}
       </Card>
-      {entry && goal && (
-        <GoalDayDialog
-          goal={goal}
-          day={entry.day}
-          onClose={() => setEntryId("")}
-        />
-      )}
+      <AnimatePresence>
+        {entry && goal && (
+          <GoalDayDialog
+            goal={goal}
+            day={entry.day}
+            onClose={() => setEntryId("")}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,3 +1,8 @@
+import { motion } from "motion/react";
+import { fade, fadeUp } from "../animation/variants";
+import { staggerDelay } from "../animation/tokens";
+import { useMotionReduced } from "../animation/MotionProvider";
+import { transitions } from "../animation/transitions";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { useApp, useData } from "../store";
@@ -8,6 +13,7 @@ import { remainingBudget } from "../../shared/finance-planning";
 import { formatMoney } from "../../shared/calculations";
 import { useNow } from "../hooks/useNow";
 export default function DailyBrief() {
+  const reduced = useMotionReduced();
   const data = useData(),
     state = useApp((s) => s.state)!,
     now = useNow(),
@@ -57,18 +63,31 @@ export default function DailyBrief() {
       ) : (
         <div className="brief-columns">
           <div>
-            {plan.tasks.slice(0, 3).map((t) => (
-              <button
+            {plan.tasks.slice(0, 3).map((t, index) => (
+              <motion.button
+                variants={reduced ? fade : fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{
+                  ...(reduced ? transitions.exit : transitions.normal),
+                  delay: reduced ? 0 : staggerDelay(index),
+                }}
                 className="simple-row"
                 key={t.id + t.due_date}
                 onClick={() => useApp.getState().navigate("tasks", t.id)}
               >
                 {t.title}
-              </button>
+              </motion.button>
             ))}
             {!plan.tasks.length && <p>Нет срочных задач</p>}
           </div>
-          <div className="form-stack">
+          <motion.div
+            className="form-stack"
+            variants={fade}
+            initial="hidden"
+            animate="visible"
+            transition={transitions.normal}
+          >
             <p>
               {plan.nextEvent
                 ? `${format(plan.nextEvent.at, "d MMM HH:mm")} — ${plan.nextEvent.event.title}`
@@ -85,7 +104,7 @@ export default function DailyBrief() {
                 {daily.mainProject.name} — {daily.projectProgress}%
               </p>
             )}
-          </div>
+          </motion.div>
         </div>
       )}
       <button

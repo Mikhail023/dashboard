@@ -1,3 +1,9 @@
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import PageTransition from "./animation/PageTransition";
+import { springs } from "./animation/tokens";
+import { transitions } from "./animation/transitions";
+import { fade } from "./animation/variants";
+import { useMotionReduced } from "./animation/MotionProvider";
 import { lazy, Suspense, useEffect, useState, useMemo, useRef } from "react";
 import {
   LayoutDashboard,
@@ -62,6 +68,7 @@ const navigation: [Page, string, LucideIcon][] = [
 ];
 export default function App() {
   const { state, auth, page, toast, editor, searchOpen, navigate } = useApp();
+  const reduced = useMotionReduced();
   const [notifications, setNotifications] = useState(false),
     [collapsed, setCollapsed] = useState(false);
   const hasReportedReady = useRef(false);
@@ -198,99 +205,120 @@ export default function App() {
         <div
           className={`app ${collapsed ? "sidebar-collapsed" : ""} ${state.settings.density === "compact" ? "compact" : ""}`}
         >
-          <aside className="sidebar">
-            <button className="brand" onClick={() => navigate("dashboard")}>
-              <span className="logo logo-image">
-                <BrandLogo />
-              </span>
-              <strong>Dashboard</strong>
-            </button>
-            <div className="section-label">МЕНЮ</div>
-            <nav>
-              {navigation.map(([id, label, Icon]) => (
-                <button
-                  title={label}
-                  key={id}
-                  className={page === id ? "active" : ""}
-                  onClick={() => navigate(id)}
-                >
-                  <Icon size={20} />
-                  <span>{label}</span>
-                  {id === "inbox" && (
-                    <small>
-                      {
-                        active(state.data.inbox).filter(
-                          (i) => i.status === "pending",
-                        ).length
-                      }
-                    </small>
-                  )}
-                  {id === "tasks" && (
-                    <small>
-                      {
-                        active(state.data.tasks).filter(
-                          (t) => t.status !== "done",
-                        ).length
-                      }
-                    </small>
-                  )}
-                </button>
-              ))}
-            </nav>
-            <div className="section-label general">ОБЩЕЕ</div>
-            <nav>
-              {[
-                ["settings", "Настройки", Settings],
-                ["help", "Помощь", HelpCircle],
-              ].map(([id, label, Icon]) => {
-                const I = Icon as LucideIcon;
-                return (
+          <LayoutGroup id="sidebar">
+            <aside className="sidebar">
+              <button className="brand" onClick={() => navigate("dashboard")}>
+                <span className="logo logo-image">
+                  <BrandLogo />
+                </span>
+                <strong>Dashboard</strong>
+              </button>
+              <div className="section-label">МЕНЮ</div>
+              <nav>
+                {navigation.map(([id, label, Icon]) => (
                   <button
-                    title={String(label)}
-                    key={String(id)}
+                    title={label}
+                    key={id}
                     className={page === id ? "active" : ""}
-                    onClick={() => navigate(id as Page)}
+                    onClick={() => navigate(id)}
                   >
-                    <I size={20} />
-                    <span>{String(label)}</span>
+                    {page === id && (
+                      <motion.span
+                        aria-hidden="true"
+                        className="nav-active-indicator"
+                        layoutId={reduced ? undefined : "active"}
+                        transition={springs.smooth}
+                      />
+                    )}
+                    <Icon size={20} />
+                    <span>{label}</span>
+                    {id === "inbox" && (
+                      <small>
+                        {
+                          active(state.data.inbox).filter(
+                            (i) => i.status === "pending",
+                          ).length
+                        }
+                      </small>
+                    )}
+                    {id === "tasks" && (
+                      <small>
+                        {
+                          active(state.data.tasks).filter(
+                            (t) => t.status !== "done",
+                          ).length
+                        }
+                      </small>
+                    )}
                   </button>
-                );
-              })}
-              <button
-                title="Заблокировать"
-                onClick={() => void action({ action: "lock" })}
-              >
-                <LogOut size={20} />
-                <span>Заблокировать</span>
-              </button>
-            </nav>
-            <div className="sidebar-bottom">
-              <div className="backup-card">
-                <HardDrive size={24} />
-                <strong>Резервная копия</strong>
-                <p>
-                  {state.settings.lastBackup
-                    ? `Последняя: ${new Date(state.settings.lastBackup).toLocaleDateString("ru-RU")}`
-                    : "Позаботьтесь о своих данных"}
-                </p>
-                <Button
-                  onClick={() =>
-                    void action({ action: "backup" }, "Резервная копия создана")
-                  }
+                ))}
+              </nav>
+              <div className="section-label general">ОБЩЕЕ</div>
+              <nav>
+                {[
+                  ["settings", "Настройки", Settings],
+                  ["help", "Помощь", HelpCircle],
+                ].map(([id, label, Icon]) => {
+                  const I = Icon as LucideIcon;
+                  return (
+                    <button
+                      title={String(label)}
+                      key={String(id)}
+                      className={page === id ? "active" : ""}
+                      onClick={() => navigate(id as Page)}
+                    >
+                      {page === id && (
+                        <motion.span
+                          aria-hidden="true"
+                          className="nav-active-indicator"
+                          layoutId={reduced ? undefined : "active"}
+                          transition={springs.smooth}
+                        />
+                      )}
+                      <I size={20} />
+                      <span>{String(label)}</span>
+                    </button>
+                  );
+                })}
+                <button
+                  title="Заблокировать"
+                  onClick={() => void action({ action: "lock" })}
                 >
-                  Создать копию
-                </Button>
+                  <LogOut size={20} />
+                  <span>Заблокировать</span>
+                </button>
+              </nav>
+              <div className="sidebar-bottom">
+                <div className="backup-card">
+                  <HardDrive size={24} />
+                  <strong>Резервная копия</strong>
+                  <p>
+                    {state.settings.lastBackup
+                      ? `Последняя: ${new Date(state.settings.lastBackup).toLocaleDateString("ru-RU")}`
+                      : "Позаботьтесь о своих данных"}
+                  </p>
+                  <Button
+                    onClick={() =>
+                      void action(
+                        { action: "backup" },
+                        "Резервная копия создана",
+                      )
+                    }
+                  >
+                    Создать копию
+                  </Button>
+                </div>
+                <button
+                  className="collapse-button"
+                  onClick={() => setCollapsed(!collapsed)}
+                  aria-label="Свернуть боковую панель"
+                >
+                  <PanelLeftClose size={17} />
+                  <span>Свернуть</span>
+                </button>
               </div>
-              <button
-                className="collapse-button"
-                onClick={() => setCollapsed(!collapsed)}
-                aria-label="Свернуть боковую панель"
-              >
-                <PanelLeftClose size={17} />
-                <span>Свернуть</span>
-              </button>
-            </div>
-          </aside>
+            </aside>
+          </LayoutGroup>
           <div className="workspace">
             <header className="topbar">
               <button
@@ -350,10 +378,14 @@ export default function App() {
                 </button>
               </div>
             </header>
-            <main>
-              <Suspense fallback={<div className="loading">Загрузка…</div>}>
-                <PageComponent key={page + useApp.getState().selected} />
-              </Suspense>
+            <main className="page-motion-host">
+              <AnimatePresence initial={false}>
+                <PageTransition key={page}>
+                  <Suspense fallback={<div className="loading">Загрузка…</div>}>
+                    <PageComponent key={page + useApp.getState().selected} />
+                  </Suspense>
+                </PageTransition>
+              </AnimatePresence>
             </main>
             <footer className="statusbar">
               <span>
@@ -363,49 +395,66 @@ export default function App() {
               <span>Dashboard · Только на вашем устройстве</span>
             </footer>
           </div>
-          {editor && (
-            <EntityForm key={editor.table + (editor.row?.id ?? "new")} />
-          )}{" "}
-          {searchOpen && <CommandSearch />}
-          {state && useApp.getState().smartOpen && <SmartInput />}
-          {notifications && (
-            <Modal title="Уведомления" onClose={() => setNotifications(false)}>
-              {notices.length ? (
-                notices.map((n) => (
-                  <button
-                    key={n.id}
-                    className="simple-row"
-                    onClick={() => {
-                      setNotifications(false);
-                      if (n.page === "calendar")
-                        useApp.getState().edit(
-                          "events",
-                          state.data.events.find((e) => e.id === n.id),
-                        );
-                      else navigate(n.page, n.id);
-                    }}
-                  >
-                    <span>
-                      <strong>{n.label}</strong>
-                      <small className="block muted">{n.detail}</small>
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="empty">
-                  <Check size={28} />
-                  <p>Всё под контролем</p>
-                </div>
-              )}
-            </Modal>
-          )}
+          <AnimatePresence initial={false}>
+            {editor && (
+              <EntityForm key={editor.table + (editor.row?.id ?? "new")} />
+            )}{" "}
+            {searchOpen && <CommandSearch key="search" />}
+            {state && useApp.getState().smartOpen && <SmartInput key="smart" />}
+            {notifications && (
+              <Modal
+                key="notifications"
+                title="Уведомления"
+                onClose={() => setNotifications(false)}
+              >
+                {notices.length ? (
+                  notices.map((n) => (
+                    <button
+                      key={n.id}
+                      className="simple-row"
+                      onClick={() => {
+                        setNotifications(false);
+                        if (n.page === "calendar")
+                          useApp.getState().edit(
+                            "events",
+                            state.data.events.find((e) => e.id === n.id),
+                          );
+                        else navigate(n.page, n.id);
+                      }}
+                    >
+                      <span>
+                        <strong>{n.label}</strong>
+                        <small className="block muted">{n.detail}</small>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="empty">
+                    <Check size={28} />
+                    <p>Всё под контролем</p>
+                  </div>
+                )}
+              </Modal>
+            )}
+          </AnimatePresence>
         </div>
       )}
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {toast && (
+          <motion.div
+            key="toast"
+            className="toast"
+            role="status"
+            variants={fade}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={transitions.fast}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

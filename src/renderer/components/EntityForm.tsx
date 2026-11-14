@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { localDay } from "../../shared/smart-input";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useApp, action, active, useData } from "../store";
 import { labels, type Table } from "../../shared/model";
 import { Button, Modal } from "./UI";
+import DateTimePicker from "./DateTimePicker";
 type Field = {
   key: string;
   label: string;
@@ -116,6 +117,24 @@ export const formFields: Record<Table, Field[]> = {
       required: true,
     },
     { key: "currency", label: "Валюта", options: ["RUB", "USD", "EUR"] },
+  ],
+  subscriptions: [
+    name,
+    { key: "amount", label: "Стоимость", type: "number", required: true },
+    { key: "currency", label: "Валюта", options: ["RUB", "USD", "EUR"] },
+    {
+      key: "interval",
+      label: "Период оплаты",
+      options: ["monthly", "weekly", "daily", "yearly"],
+    },
+    {
+      key: "next_payment_at",
+      label: "Следующая оплата",
+      type: "date",
+      required: true,
+    },
+    { key: "reminder_days", label: "Напомнить за (дней)", type: "number" },
+    { key: "active", label: "Напоминания включены", type: "checkbox" },
   ],
   task_completions: [
     { key: "task_id", label: "Задача", ref: "tasks", required: true },
@@ -254,6 +273,7 @@ const names: Record<Table, string> = {
   daily_goal_entries: "прогресс привычки",
   budgets: "бюджет",
   financial_goals: "финансовую цель",
+  subscriptions: "подписку",
   task_completions: "отметку выполнения",
   inbox: "входящее",
   projects: "проект",
@@ -279,6 +299,7 @@ export default function EntityForm() {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<Record<string, unknown>>({
     defaultValues: {
@@ -299,6 +320,10 @@ export default function EntityForm() {
       balance_initial: 0,
       current_amount: 0,
       recurrence_interval: 1,
+      interval: "monthly",
+      next_payment_at: localDay(),
+      reminder_days: 1,
+      active: true,
       ...editor?.row,
       ...editor?.defaults,
       ...Object.fromEntries(
@@ -439,6 +464,19 @@ export default function EntityForm() {
                           </option>
                         ))}
                   </select>
+                ) : f.type === "datetime-local" ? (
+                  <Controller
+                    control={control}
+                    name={f.key}
+                    rules={{ required: f.required }}
+                    render={({ field }) => (
+                      <DateTimePicker
+                        name={field.name}
+                        value={String(field.value ?? "")}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
                 ) : f.type === "textarea" ? (
                   <textarea rows={3} {...register(f.key)} />
                 ) : (

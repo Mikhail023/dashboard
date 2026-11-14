@@ -4,7 +4,9 @@ import type { SplashAppearance } from "../shared/splash";
 
 type SplashSettings = Record<string, string>;
 
-export function getSplashAppearance(settings: SplashSettings): SplashAppearance {
+export function getSplashAppearance(
+  settings: SplashSettings,
+): SplashAppearance {
   const dark =
     settings.theme === "dark" ||
     (settings.theme !== "light" && nativeTheme.shouldUseDarkColors);
@@ -26,7 +28,8 @@ export function createSplashWindow(appearance: SplashAppearance) {
     frame: false,
     transparent: false,
     show: false,
-    backgroundColor: appearance.dark ? "#0c0f14" : "#f7f5f2",
+    // Warm neutral surfaces keep the approved logo readable without a full-screen orange flash.
+    backgroundColor: appearance.dark ? "#211c1a" : "#f4f1ed",
     webPreferences: {
       preload: join(__dirname, "splash-preload.cjs"),
       contextIsolation: true,
@@ -41,7 +44,10 @@ export async function loadSplashWindow(
   splash: BrowserWindow,
   appearance: SplashAppearance,
 ) {
-  const query = { theme: appearance.dark ? "dark" : "light", accent: appearance.accent };
+  const query = {
+    theme: appearance.dark ? "dark" : "light",
+    accent: appearance.accent,
+  };
   if (process.env.DASHBOARD_DEV === "1") {
     const params = new URLSearchParams(query).toString();
     await splash.loadURL(`http://127.0.0.1:5173/splash.html?${params}`);

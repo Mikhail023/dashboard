@@ -1,4 +1,4 @@
-import logo from "../../лого.png";
+import logo from "../../build/logo.svg";
 import { splashTiming } from "../shared/splash";
 import "./splash.css";
 

@@ -6,6 +6,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./styles/app.css";
 import App from "./App";
+import MotionProvider from "./animation/MotionProvider";
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: string }
@@ -30,6 +31,8 @@ class ErrorBoundary extends React.Component<
 }
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
-    <App />
+    <MotionProvider>
+      <App />
+    </MotionProvider>
   </ErrorBoundary>,
 );

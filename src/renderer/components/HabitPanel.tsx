@@ -1,3 +1,6 @@
+import { AnimatePresence } from "motion/react";
+import { useValueFeedback } from "../animation/useValueFeedback";
+import AnimatedNumber from "../animation/AnimatedNumber";
 import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { addDays } from "date-fns";
 import {
@@ -57,15 +60,13 @@ export function GoalDayDialog({
           event.preventDefault();
           setBusy(true);
           try {
-            await useApp
-              .getState()
-              .run({
-                action: "recordGoal",
-                goal_id: goal.id,
-                day,
-                value,
-                mode: "set",
-              });
+            await useApp.getState().run({
+              action: "recordGoal",
+              goal_id: goal.id,
+              day,
+              value,
+              mode: "set",
+            });
             onClose();
           } catch {
             /* existing toast */
@@ -159,6 +160,8 @@ export default function HabitPanel({
   const value = entries.get(today)?.value ?? 0,
     ratio = habitProgress(value, goal.target_value),
     Icon = habitIcons[goal.icon];
+  const streakRef = useValueFeedback<HTMLSpanElement>(stats.current);
+  const progressRef = useValueFeedback<HTMLSpanElement>(value, ratio >= 1);
   return (
     <div
       className={`habit-panel habit-${size}`}
@@ -171,9 +174,9 @@ export default function HabitPanel({
           <Icon size={20} />
         </span>
         <strong>{goal.name}</strong>
-        <span className="habit-streak" title="Текущая серия">
+        <span ref={streakRef} className="habit-streak" title="Текущая серия">
           <Flame size={16} />
-          {stats.current} дн.
+          <AnimatedNumber value={stats.current} /> дн.
         </span>
       </div>
       {size === "S" ? (
@@ -238,27 +241,31 @@ export default function HabitPanel({
                 {formatHabitValue(goal.target_value, goal.unit)}
               </p>
             </div>
-            <Button
-              secondary
-              disabled={today < goal.start_date || goal.archived}
-              onClick={() => selectDay(today)}
-            >
-              {Math.floor(ratio * 100)}% · Изменить
-            </Button>
+            <span ref={progressRef}>
+              <Button
+                secondary
+                disabled={today < goal.start_date || goal.archived}
+                onClick={() => selectDay(today)}
+              >
+                {Math.floor(ratio * 100)}% · Изменить
+              </Button>
+            </span>
           </div>
           <div className="progress habit-progress">
             <i style={{ width: `${Math.min(100, ratio * 100)}%` }} />
           </div>
         </>
       )}
-      {selectedDay && (
-        <GoalDayDialog
-          key={selectedDay}
-          goal={goal}
-          day={selectedDay}
-          onClose={close}
-        />
-      )}
+      <AnimatePresence>
+        {selectedDay && (
+          <GoalDayDialog
+            key={selectedDay}
+            goal={goal}
+            day={selectedDay}
+            onClose={close}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
